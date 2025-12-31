@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { generate } from './backend/chatbot.js';
+import { generate } from './chatbot.js';
 
 const app = express();
 const port = 3001;
@@ -13,14 +13,32 @@ app.get('/', (req, res) => {
 
 app.post('/chat', async (req, res) => {
     const { message, threadId } = req.body;
-    // todo: validate above fields
 
+    // Validate fields
     if (!message || !threadId) {
         res.status(400).json({ message: 'All fields are required!' });
         return;
     }
 
-    console.log('Message', message);
+    if (typeof message !== 'string' || typeof threadId !== 'string') {
+        res.status(400).json({ message: 'Invalid field types. Both message and threadId must be strings.' });
+        return;
+    }
+
+    if (message.trim().length === 0) {
+        res.status(400).json({ message: 'Message cannot be empty or contain only whitespace.' });
+        return;
+    }
+
+    if (message.length > 5000) {
+        res.status(400).json({ message: 'Message is too long. Maximum length is 5000 characters.' });
+        return;
+    }
+
+    if (threadId.length < 5 || threadId.length > 100) {
+        res.status(400).json({ message: 'Invalid threadId format.' });
+        return;
+    }
 
     const result = await generate(message, threadId);
     res.json({ message: result });
