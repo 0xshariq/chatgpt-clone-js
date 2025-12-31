@@ -97,13 +97,15 @@ async function generate(text) {
     userMsgWrapper.className = 'user-row border-b border-white/5';
     userMsgWrapper.innerHTML = `
         <div class="container mx-auto max-w-3xl px-4 py-6 message-animation">
-            <div class="flex items-start gap-4">
+            <div class="flex items-start gap-4 justify-end">
+                <div class="flex-1 flex justify-end">
+                    <div class="max-w-[80%]">
+                        <p class="whitespace-pre-wrap break-words text-white/90 text-[15px] leading-7">${escapeHtml(text)}</p>
+                        <div class="text-xs text-white/40 mt-2 text-right">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                </div>
                 <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center flex-shrink-0 text-black font-semibold text-sm">
                     U
-                </div>
-                <div class="flex-1 pt-1">
-                    <p class="whitespace-pre-wrap break-words text-white/90 text-[15px] leading-7">${escapeHtml(text)}</p>
-                    <div class="text-xs text-white/40 mt-2">${new Date().toLocaleTimeString()}</div>
                 </div>
             </div>
         </div>
@@ -139,7 +141,7 @@ async function generate(text) {
                     <div class="w-8 h-8 bg-[#19c37d] rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm">
                         AI
                     </div>
-                    <div class="flex-1 pt-1">
+                    <div class="flex-1 pt-1 max-w-[80%]">
                         <div class="markdown-content text-white/90 text-[15px] leading-7">${parseMarkdown(assistantMessage)}</div>
                         <div class="message-actions">
                             <button class="action-btn copy-message-btn" data-message="${escapeHtml(assistantMessage)}" title="Copy message">
@@ -182,7 +184,7 @@ async function generate(text) {
                     <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 text-white font-semibold text-sm">
                         !
                     </div>
-                    <div class="flex-1 pt-1">
+                    <div class="flex-1 pt-1 max-w-[80%]">
                         <p class="text-red-400 text-[15px] leading-7">Error: ${escapeHtml(error.message)}</p>
                         <div class="text-xs text-white/40 mt-2">${new Date().toLocaleTimeString()}</div>
                     </div>
