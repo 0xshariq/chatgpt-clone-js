@@ -2,6 +2,17 @@ import Groq from 'groq-sdk';
 import { tavily } from '@tavily/core';
 import NodeCache from 'node-cache';
 
+// Validate API keys
+if (!process.env.TAVILY_API_KEY) {
+    console.error('ERROR: TAVILY_API_KEY is not set in environment variables');
+    throw new Error('Missing TAVILY_API_KEY environment variable');
+}
+
+if (!process.env.GROQ_API_KEY) {
+    console.error('ERROR: GROQ_API_KEY is not set in environment variables');
+    throw new Error('Missing GROQ_API_KEY environment variable');
+}
+
 const tvly = tavily({ apiKey: process.env.TAVILY_API_KEY });
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -54,11 +65,13 @@ export async function generate(userMessage, threadId) {
 
     while (true) {
         if (count > MAX_RETRIES) {
-            return 'I Could not find the result, please try again';
+            console.error(`Max retries (${MAX_RETRIES}) reached for thread: ${threadId}`);
+            return 'I apologize, but I could not process your request after multiple attempts. Please try again or rephrase your question.';
         }
         count++;
 
-        const completions = await groq.chat.completions.create({
+        try {
+            const completions = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
             temperature: 0,
             messages: messages,
@@ -83,45 +96,81 @@ export async function generate(userMessage, threadId) {
                 },
             ],
             tool_choice: 'auto',
-        });
+            });
 
-        messages.push(completions.choices[0].message);
-
-        const toolCalls = completions.choices[0].message.tool_calls;
-
-        if (!toolCalls) {
-            // here we end the chatbot response
-            cache.set(threadId, messages);
-            return completions.choices[0].message.content;
-        }
-
-        for (const tool of toolCalls) {
-            // console.log('tool: ', tool);
-            const functionName = tool.function.name;
-            const functionParams = tool.function.arguments;
-
-            if (functionName === 'webSearch') {
-                const toolResult = await webSearch(JSON.parse(functionParams));
-                // console.log('Tool result: ', toolResult);
-
-                messages.push({
-                    tool_call_id: tool.id,
-                    role: 'tool',
-                    name: functionName,
-                    content: toolResult,
-                });
+            if (!completions.choices || completions.choices.length === 0) {
+                throw new Error('No response from AI model');
             }
+
+            messages.push(completions.choices[0].message);
+
+            const toolCalls = completions.choices[0].message.tool_calls;
+
+            if (!toolCalls) {
+                // here we end the chatbot response
+                cache.set(threadId, messages);
+                return completions.choices[0].message.content;
+            }
+
+            for (const tool of toolCalls) {
+                const functionName = tool.function.name;
+                const functionParams = tool.function.arguments;
+
+                if (functionName === 'webSearch') {
+                    try {
+                        const toolResult = await webSearch(JSON.parse(functionParams));
+                        messages.push({
+                            tool_call_id: tool.id,
+                            role: 'tool',
+                            name: functionName,
+                            content: toolResult,
+                        });
+                    } catch (toolError) {
+                        console.error('Error in webSearch:', toolError);
+                        messages.push({
+                            tool_call_id: tool.id,
+                            role: 'tool',
+                            name: functionName,
+                            content: 'Error performing web search. Please try again.',
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`Error in completion attempt ${count}:`, error);
+            if (count >= MAX_RETRIES) {
+                throw error;
+            }
+            // Continue to next iteration on error
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
         }
     }
 }
 async function webSearch({ query }) {
-    // Here we will do tavily api call
-    console.log('Calling web search...');
+    console.log(`[${new Date().toISOString()}] Calling web search for query: ${query}`);
+    
+    try {
+        if (!query || typeof query !== 'string' || query.trim().length === 0) {
+            throw new Error('Invalid search query');
+        }
 
-    const response = await tvly.search(query);
-    // console.log('Response: ', response);
+        const response = await tvly.search(query, {
+            maxResults: 5,
+            includeAnswer: true
+        });
 
-    const finalResult = response.results.map((result) => result.content).join('\n\n');
+        if (!response || !response.results || response.results.length === 0) {
+            return 'No search results found for your query.';
+        }
 
-    return finalResult;
+        const finalResult = response.results
+            .map((result) => result.content)
+            .filter(content => content && content.trim().length > 0)
+            .join('\n\n');
+
+        return finalResult || 'No relevant information found.';
+    } catch (error) {
+        console.error('Error in webSearch:', error);
+        throw new Error(`Web search failed: ${error.message}`);
+    }
 }

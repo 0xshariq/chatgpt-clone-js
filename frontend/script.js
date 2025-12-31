@@ -209,12 +209,17 @@ function escapeHtml(text) {
 }
 
 function parseMarkdown(text) {
-    // Use marked.js to parse markdown
-    const html = marked.parse(text);
+    if (!text || typeof text !== 'string') {
+        return '';
+    }
     
-    // Wrap code blocks with custom header
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
+    try {
+        // Use marked.js to parse markdown
+        const html = marked.parse(text);
+        
+        // Wrap code blocks with custom header
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
     
     const preElements = tempDiv.querySelectorAll('pre code');
     preElements.forEach((codeElement) => {
@@ -237,13 +242,21 @@ function parseMarkdown(text) {
         wrapper.appendChild(pre.cloneNode(true));
         
         pre.replaceWith(wrapper);
-    });
-    
-    return tempDiv.innerHTML;
+        });
+        
+        return tempDiv.innerHTML;
+    } catch (error) {
+        console.error('Error parsing markdown:', error);
+        return escapeHtml(text);
+    }
 }
 
 function addCodeCopyButtons(container) {
+    if (!container) return;
+    
     const copyButtons = container.querySelectorAll('.copy-code-btn');
+    if (!copyButtons) return;
+    
     copyButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             const code = this.getAttribute('data-code');
@@ -257,32 +270,66 @@ function addCodeCopyButtons(container) {
 }
 
 function copyToClipboard(text, button) {
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = button.textContent;
-        button.textContent = '✓ Copied!';
-        button.classList.add('copied');
-        setTimeout(() => {
-            button.textContent = originalText;
-            button.classList.remove('copied');
-        }, 2000);
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-    });
+    if (!text || !button) return;
+    
+    // Try modern clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showCopySuccess(button);
+        }).catch(err => {
+            console.error('Failed to copy with clipboard API:', err);
+            fallbackCopy(text, button);
+        });
+    } else {
+        fallbackCopy(text, button);
+    }
+}
+
+function showCopySuccess(button) {
+    const originalText = button.textContent;
+    button.textContent = '✓ Copied!';
+    button.classList.add('copied');
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('copied');
+    }, 2000);
+}
+
+function fallbackCopy(text, button) {
+    // Fallback for older browsers
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showCopySuccess(button);
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Failed to copy to clipboard');
+    }
+    document.body.removeChild(textarea);
 }
 
 function exportChat() {
     const messages = [];
-    const userMessages = document.querySelectorAll('.user-row p');
-    const aiMessages = document.querySelectorAll('.assistant-row .markdown-content');
-    
     const allRows = document.querySelectorAll('.user-row, .assistant-row');
+    
+    if (!allRows || allRows.length === 0) {
+        alert('No messages to export!');
+        return;
+    }
+    
     allRows.forEach(row => {
         if (row.classList.contains('user-row')) {
-            const text = row.querySelector('p')?.textContent;
+            const text = row.querySelector('p')?.textContent?.trim();
             if (text) messages.push(`User: ${text}\n`);
-        } else {
-            const text = row.querySelector('.markdown-content')?.textContent;
-            if (text) messages.push(`Assistant: ${text}\n`);
+        } else if (!row.querySelector('.typing-indicator')) {
+            // Skip loading indicators
+            const text = row.querySelector('.markdown-content')?.textContent?.trim();
+            if (text && text !== 'Error:') messages.push(`Assistant: ${text}\n`);
         }
     });
     
@@ -291,14 +338,24 @@ function exportChat() {
         return;
     }
     
-    const chatText = messages.join('\n');
-    const blob = new Blob([chatText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chat-${new Date().toISOString().slice(0, 10)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const header = `ChatGPT Conversation Export\nDate: ${new Date().toLocaleString()}\n${'='.repeat(50)}\n\n`;
+    const chatText = header + messages.join('\n');
+    
+    try {
+        const blob = new Blob([chatText], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chatgpt-conversation-${timestamp}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting chat:', error);
+        alert('Failed to export chat. Please try again.');
+    }
 }
 
 function clearChat() {
@@ -376,20 +433,41 @@ function handleNewChat() {
 }
 
 async function callServer(inputText) {
-    const response = await fetch('http://localhost:3001/chat', {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json',
-        },
-        body: JSON.stringify({ threadId: threadId, message: inputText }),
-    });
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    if (!response.ok) {
-        throw new Error('Error generating the response.');
+        const response = await fetch('http://localhost:3001/chat', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: JSON.stringify({ threadId: threadId, message: inputText }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Server error: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        if (!result || !result.message) {
+            throw new Error('Invalid response from server');
+        }
+        
+        return result.message;
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout. The server took too long to respond.');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            throw new Error('Network error. Please check your connection and ensure the server is running.');
+        }
+        throw error;
     }
-
-    const result = await response.json();
-    return result.message;
 }
 
 async function handleAsk(e) {
