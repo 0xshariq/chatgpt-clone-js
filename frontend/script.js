@@ -16,11 +16,11 @@ marked.setOptions({
     gfm: true,
     headerIds: false,
     mangle: false,
-    highlight: function(code, lang) {
+    highlight: function (code, lang) {
         if (lang && hljs.getLanguage(lang)) {
             try {
                 return hljs.highlight(code, { language: lang }).value;
-            } catch (err) {}
+            } catch (err) { }
         }
         return hljs.highlightAuto(code).value;
     }
@@ -33,7 +33,7 @@ exportBtn?.addEventListener('click', exportChat);
 clearBtn?.addEventListener('click', clearChat);
 
 // Auto-resize textarea
-input?.addEventListener('input', function() {
+input?.addEventListener('input', function () {
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 200) + 'px';
     updateCharCounter();
@@ -44,7 +44,7 @@ function updateCharCounter() {
     const length = input.value.length;
     const maxLength = 5000;
     charCounter.textContent = `${length} / ${maxLength}`;
-    
+
     if (length > maxLength * 0.9) {
         charCounter.classList.add('danger');
         charCounter.classList.remove('warning');
@@ -58,7 +58,7 @@ function updateCharCounter() {
 
 // Handle suggestion buttons
 document.querySelectorAll('.suggestion-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
+    btn.addEventListener('click', function () {
         const suggestionText = this.querySelector('.text-sm').textContent + ' ' + this.querySelector('.text-xs').textContent;
         input.value = suggestionText;
         input.focus();
@@ -114,7 +114,7 @@ async function generate(text) {
     input.value = '';
     input.style.height = 'auto';
     updateCharCounter();
-    
+
     // Disable input and button while processing
     askBtn.disabled = true;
     input.disabled = true;
@@ -157,16 +157,16 @@ async function generate(text) {
             </div>
         `;
         chatContainer?.appendChild(assistantMsgWrapper);
-        
+
         // Add event listeners for code copy buttons
         addCodeCopyButtons(assistantMsgWrapper);
-        
+
         // Add event listeners for message actions
-        assistantMsgWrapper.querySelector('.copy-message-btn')?.addEventListener('click', function() {
+        assistantMsgWrapper.querySelector('.copy-message-btn')?.addEventListener('click', function () {
             copyToClipboard(this.getAttribute('data-message'), this);
         });
-        
-        assistantMsgWrapper.querySelector('.regenerate-btn')?.addEventListener('click', function() {
+
+        assistantMsgWrapper.querySelector('.regenerate-btn')?.addEventListener('click', function () {
             const prompt = this.getAttribute('data-prompt');
             // Remove this assistant message before regenerating
             assistantMsgWrapper.remove();
@@ -174,7 +174,7 @@ async function generate(text) {
         });
     } catch (error) {
         loading.remove();
-        
+
         // Error message
         const errorMsgWrapper = document.createElement('div');
         errorMsgWrapper.className = 'assistant-row border-b border-white/5';
@@ -212,38 +212,38 @@ function parseMarkdown(text) {
     if (!text || typeof text !== 'string') {
         return '';
     }
-    
+
     try {
         // Use marked.js to parse markdown
         const html = marked.parse(text);
-        
+
         // Wrap code blocks with custom header
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = html;
-    
-    const preElements = tempDiv.querySelectorAll('pre code');
-    preElements.forEach((codeElement) => {
-        const pre = codeElement.parentElement;
-        const language = codeElement.className.match(/language-(\w+)/)?.[1] || 'text';
-        
-        const wrapper = document.createElement('div');
-        wrapper.className = 'code-block-wrapper';
-        
-        const header = document.createElement('div');
-        header.className = 'code-header';
-        header.innerHTML = `
+
+        const preElements = tempDiv.querySelectorAll('pre code');
+        preElements.forEach((codeElement) => {
+            const pre = codeElement.parentElement;
+            const language = codeElement.className.match(/language-(\w+)/)?.[1] || 'text';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'code-block-wrapper';
+
+            const header = document.createElement('div');
+            header.className = 'code-header';
+            header.innerHTML = `
             <span class="code-language">${language}</span>
             <button class="copy-code-btn" data-code="${escapeHtml(codeElement.textContent)}">Copy</button>
         `;
-        
-        wrapper.appendChild(header);
-        pre.style.borderRadius = '0 0 8px 8px';
-        pre.style.marginTop = '0';
-        wrapper.appendChild(pre.cloneNode(true));
-        
-        pre.replaceWith(wrapper);
+
+            wrapper.appendChild(header);
+            pre.style.borderRadius = '0 0 8px 8px';
+            pre.style.marginTop = '0';
+            wrapper.appendChild(pre.cloneNode(true));
+
+            pre.replaceWith(wrapper);
         });
-        
+
         return tempDiv.innerHTML;
     } catch (error) {
         console.error('Error parsing markdown:', error);
@@ -253,12 +253,12 @@ function parseMarkdown(text) {
 
 function addCodeCopyButtons(container) {
     if (!container) return;
-    
+
     const copyButtons = container.querySelectorAll('.copy-code-btn');
     if (!copyButtons) return;
-    
+
     copyButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const code = this.getAttribute('data-code');
             // Decode HTML entities
             const textarea = document.createElement('textarea');
@@ -271,7 +271,7 @@ function addCodeCopyButtons(container) {
 
 function copyToClipboard(text, button) {
     if (!text || !button) return;
-    
+
     // Try modern clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
@@ -316,12 +316,12 @@ function fallbackCopy(text, button) {
 function exportChat() {
     const messages = [];
     const allRows = document.querySelectorAll('.user-row, .assistant-row');
-    
+
     if (!allRows || allRows.length === 0) {
         alert('No messages to export!');
         return;
     }
-    
+
     allRows.forEach(row => {
         if (row.classList.contains('user-row')) {
             const text = row.querySelector('p')?.textContent?.trim();
@@ -332,16 +332,16 @@ function exportChat() {
             if (text && text !== 'Error:') messages.push(`Assistant: ${text}\n`);
         }
     });
-    
+
     if (messages.length === 0) {
         alert('No messages to export!');
         return;
     }
-    
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const header = `ChatGPT Conversation Export\nDate: ${new Date().toLocaleString()}\n${'='.repeat(50)}\n\n`;
     const chatText = header + messages.join('\n');
-    
+
     try {
         const blob = new Blob([chatText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -380,10 +380,10 @@ function scrollToBottom() {
 function handleNewChat() {
     // Generate new thread ID
     threadId = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
-    
+
     // Clear chat container
     chatContainer.innerHTML = '';
-    
+
     // Show welcome screen again
     const welcomeHtml = `
         <div class="flex items-center justify-center min-h-[70vh]" id="welcome-screen">
@@ -412,22 +412,22 @@ function handleNewChat() {
             </div>
         </div>
     `;
-    
+
     chatContainer.innerHTML = welcomeHtml;
-    
+
     // Re-attach suggestion button listeners
     document.querySelectorAll('.suggestion-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             const suggestionText = this.querySelector('.text-sm').textContent + ' ' + this.querySelector('.text-xs').textContent;
             input.value = suggestionText;
             input.focus();
         });
     });
-    
+
     // Clear input
     input.value = '';
     input.style.height = 'auto';
-    
+
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -454,11 +454,11 @@ async function callServer(inputText) {
         }
 
         const result = await response.json();
-        
+
         if (!result || !result.message) {
             throw new Error('Invalid response from server');
         }
-        
+
         return result.message;
     } catch (error) {
         if (error.name === 'AbortError') {

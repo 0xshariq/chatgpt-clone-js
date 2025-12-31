@@ -72,30 +72,30 @@ export async function generate(userMessage, threadId) {
 
         try {
             const completions = await groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            temperature: 0,
-            messages: messages,
-            tools: [
-                {
-                    type: 'function',
-                    function: {
-                        name: 'webSearch',
-                        description:
-                            'Search the latest information and realtime data on the internet.',
-                        parameters: {
-                            type: 'object',
-                            properties: {
-                                query: {
-                                    type: 'string',
-                                    description: 'The search query to perform search on.',
+                model: 'llama-3.1-70b-versatile',
+                temperature: 0.1,
+                messages: messages,
+                tools: [
+                    {
+                        type: 'function',
+                        function: {
+                            name: 'webSearch',
+                            description:
+                                'Search the latest information and realtime data on the internet.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    query: {
+                                        type: 'string',
+                                        description: 'The search query to perform search on.',
+                                    },
                                 },
+                                required: ['query'],
                             },
-                            required: ['query'],
                         },
                     },
-                },
-            ],
-            tool_choice: 'auto',
+                ],
+                tool_choice: 'auto',
             });
 
             if (!completions.choices || completions.choices.length === 0) {
@@ -138,6 +138,37 @@ export async function generate(userMessage, threadId) {
             }
         } catch (error) {
             console.error(`Error in completion attempt ${count}:`, error);
+
+            // Check if it's a tool_use_failed error - don't retry these
+            if (error.status === 400 && error.error?.error?.code === 'tool_use_failed') {
+                console.error('Tool calling failed, falling back to direct response');
+
+                // Try without tools on next attempt
+                try {
+                    const fallbackCompletion = await groq.chat.completions.create({
+                        model: 'llama-3.1-70b-versatile',
+                        temperature: 0.1,
+                        messages: [
+                            ...messages.slice(0, -1), // Remove the last user message
+                            {
+                                role: 'user',
+                                content: `${messages[messages.length - 1].content}\n\nNote: Unable to search the web. Please provide the best answer you can based on your knowledge. If you don't know, say so clearly.`
+                            }
+                        ],
+                        // No tools - just direct response
+                    });
+
+                    if (fallbackCompletion.choices && fallbackCompletion.choices[0]) {
+                        cache.set(threadId, messages);
+                        return fallbackCompletion.choices[0].message.content || 'I apologize, but I cannot process this request right now. Please try rephrasing your question.';
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback completion failed:', fallbackError);
+                }
+
+                return 'I apologize, but I\'m having trouble processing your request. This might be due to the complexity of the question or current system limitations. Please try rephrasing or ask something else.';
+            }
+
             if (count >= MAX_RETRIES) {
                 throw error;
             }
@@ -148,7 +179,7 @@ export async function generate(userMessage, threadId) {
 }
 async function webSearch({ query }) {
     console.log(`[${new Date().toISOString()}] Calling web search for query: ${query}`);
-    
+
     try {
         if (!query || typeof query !== 'string' || query.trim().length === 0) {
             throw new Error('Invalid search query');

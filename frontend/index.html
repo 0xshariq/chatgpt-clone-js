@@ -1,415 +1,447 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ChatGPT</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
         }
+        50% {
+          opacity: 0.5;
+        }
+      }
 
-        .message-animation {
-            animation: slideUp 0.3s ease-out;
-        }
+      .message-animation {
+        animation: slideUp 0.3s ease-out;
+      }
 
-        .loading-dots::after {
-            content: '...';
-            animation: pulse 1.5s infinite;
-        }
+      .loading-dots::after {
+        content: "...";
+        animation: pulse 1.5s infinite;
+      }
 
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
 
-        ::-webkit-scrollbar-track {
-            background: #212121;
-        }
+      ::-webkit-scrollbar-track {
+        background: #212121;
+      }
 
-        ::-webkit-scrollbar-thumb {
-            background: #4a4a4a;
-            border-radius: 4px;
-        }
+      ::-webkit-scrollbar-thumb {
+        background: #4a4a4a;
+        border-radius: 4px;
+      }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #5a5a5a;
-        }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #5a5a5a;
+      }
 
-        /* Smooth scroll */
-        html {
-            scroll-behavior: smooth;
-        }
+      /* Smooth scroll */
+      html {
+        scroll-behavior: smooth;
+      }
 
-        /* Textarea styling */
-        textarea {
-            background: transparent;
-            color: white;
-        }
+      /* Textarea styling */
+      textarea {
+        background: transparent;
+        color: white;
+      }
 
-        textarea::placeholder {
-            color: #8e8e8e;
-        }
+      textarea::placeholder {
+        color: #8e8e8e;
+      }
 
-        /* User message row background */
-        .user-row {
-            background-color: #2f2f2f;
-        }
+      /* User message row background */
+      .user-row {
+        background-color: #2f2f2f;
+      }
 
-        /* Assistant message row background */
-        .assistant-row {
-            background-color: #212121;
-        }
+      /* Assistant message row background */
+      .assistant-row {
+        background-color: #212121;
+      }
 
-        /* Markdown styling */
-        .markdown-content h1,
-        .markdown-content h2,
-        .markdown-content h3 {
-            font-weight: 600;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-        }
+      /* Markdown styling */
+      .markdown-content h1,
+      .markdown-content h2,
+      .markdown-content h3 {
+        font-weight: 600;
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+      }
 
-        .markdown-content h1 {
-            font-size: 1.5em;
-        }
+      .markdown-content h1 {
+        font-size: 1.5em;
+      }
 
-        .markdown-content h2 {
-            font-size: 1.3em;
-        }
+      .markdown-content h2 {
+        font-size: 1.3em;
+      }
 
-        .markdown-content h3 {
-            font-size: 1.1em;
-        }
+      .markdown-content h3 {
+        font-size: 1.1em;
+      }
 
-        .markdown-content p {
-            margin-bottom: 1em;
-        }
+      .markdown-content p {
+        margin-bottom: 1em;
+      }
 
-        .markdown-content p:last-child {
-            margin-bottom: 0;
-        }
+      .markdown-content p:last-child {
+        margin-bottom: 0;
+      }
 
-        .markdown-content ul,
-        .markdown-content ol {
-            margin-left: 1.5em;
-            margin-bottom: 1em;
-        }
+      .markdown-content ul,
+      .markdown-content ol {
+        margin-left: 1.5em;
+        margin-bottom: 1em;
+      }
 
-        .markdown-content ul {
-            list-style-type: disc;
-        }
+      .markdown-content ul {
+        list-style-type: disc;
+      }
 
-        .markdown-content ol {
-            list-style-type: decimal;
-        }
+      .markdown-content ol {
+        list-style-type: decimal;
+      }
 
-        .markdown-content li {
-            margin-bottom: 0.25em;
-        }
+      .markdown-content li {
+        margin-bottom: 0.25em;
+      }
 
-        .markdown-content code {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-        }
+      .markdown-content code {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 0.2em 0.4em;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+      }
 
-        .markdown-content pre {
-            background-color: #000;
-            padding: 1em;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin-bottom: 1em;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+      .markdown-content pre {
+        background-color: #000;
+        padding: 1em;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1em;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
 
-        .markdown-content pre code {
-            background-color: transparent;
-            padding: 0;
-            font-size: 0.875em;
-            line-height: 1.5;
-        }
+      .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+        font-size: 0.875em;
+        line-height: 1.5;
+      }
 
-        .markdown-content blockquote {
-            border-left: 3px solid rgba(255, 255, 255, 0.3);
-            padding-left: 1em;
-            margin-left: 0;
-            margin-bottom: 1em;
-            color: rgba(255, 255, 255, 0.7);
-        }
+      .markdown-content blockquote {
+        border-left: 3px solid rgba(255, 255, 255, 0.3);
+        padding-left: 1em;
+        margin-left: 0;
+        margin-bottom: 1em;
+        color: rgba(255, 255, 255, 0.7);
+      }
 
-        .markdown-content a {
-            color: #60a5fa;
-            text-decoration: underline;
-        }
+      .markdown-content a {
+        color: #60a5fa;
+        text-decoration: underline;
+      }
 
-        .markdown-content a:hover {
-            color: #93c5fd;
-        }
+      .markdown-content a:hover {
+        color: #93c5fd;
+      }
 
-        .markdown-content table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 1em;
-        }
+      .markdown-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 1em;
+      }
 
-        .markdown-content th,
-        .markdown-content td {
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 0.5em;
-            text-align: left;
-        }
+      .markdown-content th,
+      .markdown-content td {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.5em;
+        text-align: left;
+      }
 
-        .markdown-content th {
-            background-color: rgba(255, 255, 255, 0.1);
-            font-weight: 600;
-        }
+      .markdown-content th {
+        background-color: rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+      }
 
-        .markdown-content hr {
-            border: none;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            margin: 1.5em 0;
-        }
+      .markdown-content hr {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        margin: 1.5em 0;
+      }
 
-        .markdown-content strong {
-            font-weight: 600;
-        }
+      .markdown-content strong {
+        font-weight: 600;
+      }
 
-        .markdown-content em {
-            font-style: italic;
-        }
+      .markdown-content em {
+        font-style: italic;
+      }
 
-        /* Code block improvements */
-        .code-block-wrapper {
-            position: relative;
-            margin: 1em 0;
-        }
+      /* Code block improvements */
+      .code-block-wrapper {
+        position: relative;
+        margin: 1em 0;
+      }
 
-        .code-header {
-            background-color: #1a1a1a;
-            padding: 0.5em 1em;
-            border-radius: 8px 8px 0 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-bottom: none;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+      .code-header {
+        background-color: #1a1a1a;
+        padding: 0.5em 1em;
+        border-radius: 8px 8px 0 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-        .code-language {
-            font-size: 0.75em;
-            color: rgba(255, 255, 255, 0.6);
-            text-transform: uppercase;
-        }
+      .code-language {
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.6);
+        text-transform: uppercase;
+      }
 
-        .copy-code-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            padding: 0.25em 0.75em;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.75em;
-            transition: background 0.2s;
-        }
+      .copy-code-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        padding: 0.25em 0.75em;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.75em;
+        transition: background 0.2s;
+      }
 
-        .copy-code-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
+      .copy-code-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
 
-        .copy-code-btn.copied {
-            background: #19c37d;
-        }
+      .copy-code-btn.copied {
+        background: #19c37d;
+      }
 
-        /* Message actions */
-        .message-actions {
-            opacity: 0;
-            transition: opacity 0.2s;
-            display: flex;
-            gap: 0.5em;
-            margin-top: 0.5em;
-        }
+      /* Message actions */
+      .message-actions {
+        opacity: 0;
+        transition: opacity 0.2s;
+        display: flex;
+        gap: 0.5em;
+        margin-top: 0.5em;
+      }
 
-        .assistant-row:hover .message-actions {
-            opacity: 1;
-        }
+      .assistant-row:hover .message-actions {
+        opacity: 1;
+      }
 
-        .action-btn {
-            background: transparent;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 0.25em 0.5em;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.875em;
-            transition: all 0.2s;
-        }
+      .action-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.25em 0.5em;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875em;
+        transition: all 0.2s;
+      }
 
-        .action-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.9);
-        }
+      .action-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.9);
+      }
 
-        /* Typing animation */
-        .typing-indicator {
-            display: inline-flex;
-            gap: 4px;
-        }
+      /* Typing animation */
+      .typing-indicator {
+        display: inline-flex;
+        gap: 4px;
+      }
 
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        animation: typing 1.4s infinite;
+      }
 
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
 
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
 
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
         }
+        30% {
+          transform: translateY(-10px);
+        }
+      }
 
-        /* Smooth transitions */
-        * {
-            transition: background-color 0.2s ease;
-        }
+      /* Smooth transitions */
+      * {
+        transition: background-color 0.2s ease;
+      }
 
-        /* Input character counter */
-        .char-counter {
-            font-size: 0.75em;
-            color: rgba(255, 255, 255, 0.4);
-        }
+      /* Input character counter */
+      .char-counter {
+        font-size: 0.75em;
+        color: rgba(255, 255, 255, 0.4);
+      }
 
-        .char-counter.warning {
-            color: #f59e0b;
-        }
+      .char-counter.warning {
+        color: #f59e0b;
+      }
 
-        .char-counter.danger {
-            color: #ef4444;
-        }
+      .char-counter.danger {
+        color: #ef4444;
+      }
     </style>
-</head>
+  </head>
 
-<body class="bg-[#212121] text-white overflow-x-hidden antialiased">
+  <body class="bg-[#212121] text-white overflow-x-hidden antialiased">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#212121] border-b border-white/10">
-        <div class="container mx-auto max-w-4xl px-4 py-3">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-lg font-semibold">ChatGPT</h1>
-                    <div class="flex items-center gap-2">
-                        <button id="export-chat" class="px-3 py-1.5 text-xs border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200" title="Export chat as text">
-                            📥 Export
-                        </button>
-                        <button id="clear-chat" class="px-3 py-1.5 text-xs border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200" title="Clear all messages">
-                            🗑️ Clear
-                        </button>
-                    </div>
-                </div>
-                <button id="new-chat" class="px-3 py-1.5 text-sm border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200">
-                    ✨ New chat
-                </button>
+    <header
+      class="fixed top-0 left-0 right-0 z-50 bg-[#212121] border-b border-white/10"
+    >
+      <div class="container mx-auto max-w-4xl px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <h1 class="text-lg font-semibold">ChatGPT</h1>
+            <div class="flex items-center gap-2">
+              <button
+                id="export-chat"
+                class="px-3 py-1.5 text-xs border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200"
+                title="Export chat as text"
+              >
+                📥 Export
+              </button>
+              <button
+                id="clear-chat"
+                class="px-3 py-1.5 text-xs border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200"
+                title="Clear all messages"
+              >
+                🗑️ Clear
+              </button>
             </div>
+          </div>
+          <button
+            id="new-chat"
+            class="px-3 py-1.5 text-sm border border-white/10 hover:bg-white/5 rounded-lg transition-colors duration-200"
+          >
+            ✨ New chat
+          </button>
         </div>
+      </div>
     </header>
 
     <!-- Chat Container -->
     <div class="pt-16 pb-32" id="chat-container">
-        <!-- Welcome message -->
-        <div class="flex items-center justify-center min-h-[70vh]" id="welcome-screen">
-            <div class="text-center px-4 message-animation">
-                <h2 class="text-4xl font-semibold mb-8 text-white/90">
-                    ChatGPT
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl mx-auto">
-                    <button class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5">
-                        <div class="text-sm font-medium mb-2">Explain quantum computing</div>
-                        <div class="text-xs text-white/50">in simple terms</div>
-                    </button>
-                    <button class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5">
-                        <div class="text-sm font-medium mb-2">Get weather update</div>
-                        <div class="text-xs text-white/50">for my location</div>
-                    </button>
-                    <button class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5">
-                        <div class="text-sm font-medium mb-2">Latest tech news</div>
-                        <div class="text-xs text-white/50">what's trending today</div>
-                    </button>
-                    <button class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5">
-                        <div class="text-sm font-medium mb-2">Write a function</div>
-                        <div class="text-xs text-white/50">in Python</div>
-                    </button>
-                </div>
-            </div>
+      <!-- Welcome message -->
+      <div
+        class="flex items-center justify-center min-h-[70vh]"
+        id="welcome-screen"
+      >
+        <div class="text-center px-4 message-animation">
+          <h2 class="text-4xl font-semibold mb-8 text-white/90">ChatGPT</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl mx-auto">
+            <button
+              class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5"
+            >
+              <div class="text-sm font-medium mb-2">
+                Explain quantum computing
+              </div>
+              <div class="text-xs text-white/50">in simple terms</div>
+            </button>
+            <button
+              class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5"
+            >
+              <div class="text-sm font-medium mb-2">Get weather update</div>
+              <div class="text-xs text-white/50">for my location</div>
+            </button>
+            <button
+              class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5"
+            >
+              <div class="text-sm font-medium mb-2">Latest tech news</div>
+              <div class="text-xs text-white/50">what's trending today</div>
+            </button>
+            <button
+              class="suggestion-btn bg-[#2f2f2f] hover:bg-[#3a3a3a] p-4 rounded-2xl text-left transition-colors duration-200 border border-white/5"
+            >
+              <div class="text-sm font-medium mb-2">Write a function</div>
+              <div class="text-xs text-white/50">in Python</div>
+            </button>
+          </div>
         </div>
+      </div>
     </div>
 
     <!-- Input Area -->
-    <div class="fixed inset-x-0 bottom-0 bg-gradient-to-t from-[#212121] via-[#212121] to-transparent pt-6">
-        <div class="container mx-auto max-w-4xl px-4 pb-4">
-            <div class="bg-[#2f2f2f] rounded-3xl border border-white/10 shadow-xl">
-                <div class="px-4 py-3">
-                    <textarea 
-                        class="w-full resize-none outline-none bg-transparent text-[15px] leading-6" 
-                        rows="1" 
-                        id="input"
-                        placeholder="Message ChatGPT"
-                    ></textarea>
-                </div>
-                <div class="flex items-center justify-between px-4 pb-3">
-                    <div class="flex items-center gap-3">
-                        <span class="char-counter text-xs" id="char-counter">0 / 5000</span>
-                    </div>
-                    <button 
-                        id="ask"
-                        class="w-8 h-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-lg transition-all duration-200 hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed"
-                        title="Send message (Enter)"
-                    >
-                        ↑
-                    </button>
-                </div>
+    <div
+      class="fixed inset-x-0 bottom-0 bg-gradient-to-t from-[#212121] via-[#212121] to-transparent pt-6"
+    >
+      <div class="container mx-auto max-w-4xl px-4 pb-4">
+        <div class="bg-[#2f2f2f] rounded-3xl border border-white/10 shadow-xl">
+          <div class="px-4 py-3">
+            <textarea
+              class="w-full resize-none outline-none bg-transparent text-[15px] leading-6"
+              rows="1"
+              id="input"
+              placeholder="Message ChatGPT"
+            ></textarea>
+          </div>
+          <div class="flex items-center justify-between px-4 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="char-counter text-xs" id="char-counter"
+                >0 / 5000</span
+              >
             </div>
-            <p class="text-center text-xs text-white/40 mt-3">
-                ChatGPT can make mistakes. Check important info.
-            </p>
+            <button
+              id="ask"
+              class="w-8 h-8 bg-white text-black rounded-full flex items-center justify-center font-bold text-lg transition-all duration-200 hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Send message (Enter)"
+            >
+              ↑
+            </button>
+          </div>
         </div>
+        <p class="text-center text-xs text-white/40 mt-3">
+          ChatGPT can make mistakes. Check important info.
+        </p>
+      </div>
     </div>
 
     <script src="./script.js"></script>
-</body>
-
+  </body>
 </html>

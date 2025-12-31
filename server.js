@@ -46,7 +46,7 @@ app.post('/chat', async (req, res) => {
         res.json({ message: result });
     } catch (error) {
         console.error(`[${new Date().toISOString()}] Error in /chat route:`, error);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'An error occurred while processing your request. Please try again.',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
